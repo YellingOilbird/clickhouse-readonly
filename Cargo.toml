@@ -1,0 +1,41 @@
+[package]
+name = "clickhouse-readonly"
+version = "0.1.0"
+edition = "2021"
+authors = ["guacharo"]
+description = "Clickhouse readonly TCP light-client with TLS & Basic Ethereum types support"
+keywords = ["clickhouse", "database", "driver", "tokio", "ethereum"]
+repository = "https://github.com/YellingOilbird/clickhouse-query"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[dependencies]
+log = "0.4.17"
+env_logger = "0.10.0"
+thiserror = "1.0.40"
+
+crossbeam = "0.8.2"
+futures-core = "0.3.28"
+futures-util = "0.3.28"
+pin-project = "1.0.12"
+native-tls = "0.2"
+tokio-native-tls = "0.3.1"
+tokio = { version = "1.27.0", features = [
+    "rt-multi-thread",
+    "macros",
+    "net",
+    "time",
+    "io-util",
+    "sync",
+]}
+
+chrono-tz = "0.8.1"
+either = "1.8.1"
+ethnum = "1.3.2"
+ethereum-types = "0.14.1"
+hostname = "0.3.1"
+lazy_static = "1.4.0"
+url = "2.3.1"
+
+[dev-dependencies]
+rand = "0.8.5"
