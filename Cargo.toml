@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["guacharo"]
 description = "Clickhouse readonly TCP light-client with TLS & Basic Ethereum types support"
 keywords = ["clickhouse", "database", "driver", "tokio", "ethereum"]
-repository = "https://github.com/YellingOilbird/clickhouse-query"
+repository = "https://github.com/YellingOilbird/clickhouse-readonly"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 

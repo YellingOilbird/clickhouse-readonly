@@ -1,4 +1,4 @@
-## CLICKHOUSE-QUERY
+## CLICKHOUSE-READONLY
 
 Asynchronious TCP Connector to Clickhouse Database with `readonly` permissions (E.g. you can only execute queries but not made `Cmd::DATA` calls for `PacketStream`).
 
@@ -32,7 +32,7 @@ pub enum SqlType {
 ## Example
 
 ```sh
-cargo run --package clickhouse-query --example query_stream 
+cargo run --package clickhouse-readonly --example query_stream 
 ```
 
 ```rust
