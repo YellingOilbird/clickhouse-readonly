@@ -14,10 +14,11 @@ mod binary;
 mod protocol;
 
 pub mod error;
-mod util;
 
 pub use crate::{
-    block::Block,
+    block::{Block, Row},
+    client::ClientHandle,
+    column::Complex,
     error::{Error as ClickhouseError, Result as ClickhouseResult},
-    pool::{Pool, PoolConfig},
+    pool::{Pool, PoolConfigBuilder},
 };

@@ -20,24 +20,75 @@ use url::Url;
 
 mod futures;
 
+/// Default connection timeout
+const CONN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+/// Default connection timeout
+const QUERY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
 #[derive(Debug, Clone)]
 pub struct PoolConfig {
-    pub addr: Url,
-    pub database: String,
-    pub username: String,
-    pub password: String,
-    pub connection_timeout: Duration,
-    pub secure: bool,
+    pub(crate) addr: Url,
+    pub(crate) database: String,
+    pub(crate) username: String,
+    pub(crate) password: String,
+    pub(crate) connection_timeout: Option<Duration>,
+    pub(crate) query_timeout: Option<Duration>,
+    pub(crate) secure: bool,
+}
+
+pub struct PoolConfigBuilder(PoolConfig);
+
+impl PoolConfigBuilder {
+    pub fn new(
+        addr: Url,
+        database: String,
+        username: String,
+        password: String,
+        secure: bool,
+    ) -> Self {
+        Self(PoolConfig {
+            addr,
+            database,
+            username,
+            password,
+            connection_timeout: None,
+            query_timeout: None,
+            secure,
+        })
+    }
+
+    pub fn with_connection_timeout(mut self, timeout: Duration) -> Self {
+        self.0.connection_timeout = Some(timeout);
+        self
+    }
+
+    pub fn with_query_timeout(mut self, timeout: Duration) -> Self {
+        self.0.query_timeout = Some(timeout);
+        self
+    }
+
+    pub fn build(mut self) -> PoolConfig {
+        if self.0.connection_timeout.is_none() {
+            self.0.connection_timeout = Some(CONN_TIMEOUT)
+        }
+
+        if self.0.query_timeout.is_none() {
+            self.0.query_timeout = Some(QUERY_TIMEOUT)
+        }
+
+        self.0
+    }
 }
 
 impl Default for PoolConfig {
     fn default() -> Self {
         Self {
-            addr: Url::parse("tcp://default@127.0.0.1:9000").unwrap(),
+            addr: Url::parse("tcp://127.0.0.1:9000").unwrap(),
             database: "default".to_string(),
             username: Default::default(),
             password: Default::default(),
-            connection_timeout: std::time::Duration::from_secs(1),
+            connection_timeout: Some(CONN_TIMEOUT),
+            query_timeout: Some(QUERY_TIMEOUT),
             secure: false,
         }
     }

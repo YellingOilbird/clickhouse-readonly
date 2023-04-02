@@ -8,6 +8,7 @@ use crate::{
     error::{Error, FromSqlError, Result},
     protocol,
     types::{FromSql, SqlType},
+    Complex,
 };
 
 use self::chunk_iterator::ChunkIterator;
@@ -65,6 +66,33 @@ pub struct Block<K: ColumnType = Simple> {
     info: BlockInfo,
     columns: Vec<Column<K>>,
     capacity: usize,
+}
+
+impl Block<Simple> {
+    pub(crate) fn concat(blocks: &[Self]) -> Block<Complex> {
+        let first = blocks.first().expect("blocks should not be empty.");
+
+        for block in blocks {
+            assert_eq!(
+                first.column_count(),
+                block.column_count(),
+                "all columns should have the same size."
+            );
+        }
+
+        let num_columns = first.column_count();
+        let mut columns = Vec::with_capacity(num_columns);
+        for i in 0_usize..num_columns {
+            let chunks = blocks.iter().map(|block| &block.columns[i]);
+            columns.push(Column::concat(chunks));
+        }
+
+        Block {
+            info: first.info,
+            columns,
+            capacity: blocks.iter().map(|b| b.capacity).sum(),
+        }
+    }
 }
 
 impl<L: ColumnType, R: ColumnType> PartialEq<Block<R>> for Block<L> {

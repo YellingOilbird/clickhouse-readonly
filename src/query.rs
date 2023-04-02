@@ -1,15 +1,16 @@
 use std::marker::PhantomData;
 
 use futures_core::stream::BoxStream;
-use futures_util::StreamExt;
+use futures_util::{StreamExt, TryStreamExt};
 
 use crate::{
     block::{Block, BlockRef, Row, Rows},
-    client::ClientHandle,
+    client::{with_timeout, ClientHandle},
     column::Simple,
-    error::Result,
+    error::{Error, Result},
     query::block_stream::BlockStream,
     types::Cmd,
+    Complex,
 };
 
 #[derive(Clone, Debug)]
@@ -58,6 +59,35 @@ pub struct QueryResult<'a> {
 }
 
 impl<'a> QueryResult<'a> {
+    /// Fetch data from table. It returns a block that contains all rows.
+    pub async fn fetch_all(self) -> Result<Block<Complex>> {
+        let timeout = match self.client.context.config.query_timeout {
+            Some(timeout) => timeout,
+            None => {
+                return Err(Error::Other(
+                    "Query timeout was not set on `PoolConfig`".into(),
+                ))
+            }
+        };
+
+        with_timeout(
+            async {
+                let blocks = self
+                    ._stream_blocks(false)
+                    .try_fold(Vec::new(), |mut blocks, block| {
+                        if !block.is_empty() {
+                            blocks.push(block);
+                        }
+                        futures_util::future::ready(Ok(blocks))
+                    })
+                    .await?;
+                Ok(Block::concat(blocks.as_slice()))
+            },
+            timeout,
+        )
+        .await
+    }
+
     pub fn stream_blocks(self) -> BoxStream<'a, Result<Block>> {
         self._stream_blocks(true)
     }

@@ -55,6 +55,47 @@ impl ColumnData for ConcatColumnData {
     }
 }
 
+impl ConcatColumnData {
+    pub(crate) fn concat(data: Vec<ArcColumnData>) -> Self {
+        Self::check_columns(&data);
+
+        let index = build_index(data.iter().map(|x| x.len()));
+        Self { data, index }
+    }
+
+    fn check_columns(data: &[ArcColumnData]) {
+        match data.first() {
+            None => panic!("data should not be empty."),
+            Some(first) => {
+                for column in data.iter().skip(1) {
+                    if first.sql_type() != column.sql_type() {
+                        panic!(
+                            "all columns should have the same type ({:?} != {:?}).",
+                            first.sql_type(),
+                            column.sql_type()
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn build_index<'a, I>(sizes: I) -> Vec<usize>
+where
+    I: std::iter::Iterator<Item = usize> + 'a,
+{
+    let mut acc = 0;
+    let mut index = vec![acc];
+
+    for size in sizes {
+        acc += size;
+        index.push(acc);
+    }
+
+    index
+}
+
 fn find_chunk(index: &[usize], ix: usize) -> usize {
     let mut lo = 0_usize;
     let mut hi = index.len() - 1;

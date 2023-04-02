@@ -90,6 +90,28 @@ impl<K: ColumnType> Clone for Column<K> {
     }
 }
 
+impl Column<Simple> {
+    pub(crate) fn concat<'a, I>(items: I) -> Column<Complex>
+    where
+        I: Iterator<Item = &'a Self>,
+    {
+        let items_vec: Vec<&Self> = items.collect();
+        let chunks: Vec<_> = items_vec.iter().map(|column| column.data.clone()).collect();
+        match items_vec.first() {
+            None => unreachable!(),
+            Some(first_column) => {
+                let name: String = first_column.name().to_string();
+                let data = ConcatColumnData::concat(chunks);
+                Column {
+                    name,
+                    data: Arc::new(data),
+                    _marker: marker::PhantomData,
+                }
+            }
+        }
+    }
+}
+
 impl<K: ColumnType> Column<K> {
     /// Returns an iterator over the column.
     ///
@@ -97,11 +119,20 @@ impl<K: ColumnType> Column<K> {
     ///
     /// ```no_run
     /// # use std::env;
-    /// # use clickhouse_readonly::{error::{Error,Result}, Pool, PoolConfig};
+    /// # use clickhouse_readonly::{error::{Error,Result}, Pool, PoolConfigBuilder};
     /// # use futures_util::stream::StreamExt;
     /// # let mut rt = tokio::runtime::Runtime::new().unwrap();
     /// # let ret: Result<()> = rt.block_on(async {
-    /// #     let pool = Pool::new(PoolConfig::default());
+    /// #     let config = PoolConfigBuilder::new(
+    /// #         "127.0.0.1".parse().unwrap(),
+    /// #         "default".to_string(),
+    /// #         "username".to_string(),
+    /// #         "password".to_string(),
+    /// #         true,
+    /// #     )
+    /// #     .build();
+
+    /// #     let pool = Pool::new(config);
     /// #     let mut client = pool.get_handle().await?;
     ///       let mut stream = client
     ///             .query("SELECT number as n1, number as n2, number as n3 FROM numbers(100000000)")

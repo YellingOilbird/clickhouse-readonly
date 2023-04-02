@@ -15,8 +15,10 @@ use log::{info, warn};
 
 /// Retry guard max attempts
 const MAX_RETRY_ATTEMTS: usize = 3;
+
+pub(crate) const PING_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(1);
 /// Retry guard timeout between attempts
-const RETRY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+pub(crate) const RETRY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 pub struct Client {
     _private: std::marker::PhantomData<()>,
@@ -56,14 +58,21 @@ impl fmt::Debug for ClientHandle {
 
 impl Client {
     pub(crate) async fn open(config: PoolConfig, pool: Option<Pool>) -> Result<ClientHandle> {
-        let timeout = config.connection_timeout;
+        let timeout = match config.connection_timeout {
+            Some(timeout) => timeout,
+            None => {
+                return Err(Error::Other(
+                    "Connection timeout was not set on `PoolConfig`".into(),
+                ))
+            }
+        };
 
         let context = Context {
             config: config.clone(),
             ..Default::default()
         };
 
-        crate::util::with_timeout(
+        with_timeout(
             async move {
                 let addr = match &pool {
                     None => &config.addr,
@@ -132,9 +141,7 @@ impl ClientHandle {
     }
 
     async fn ping(&mut self) -> Result<()> {
-        let timeout = std::time::Duration::from_secs(1);
-
-        crate::util::with_timeout(
+        with_timeout(
             async move {
                 info!("[ping]");
 
@@ -158,7 +165,7 @@ impl ClientHandle {
                 self.inner = h;
                 Ok(())
             },
-            timeout,
+            PING_TIMEOUT,
         )
         .await
     }
@@ -262,4 +269,11 @@ async fn reconnect(conn: &mut ClientHandle, source: &PoolConfig, pool: Option<Po
     };
     std::mem::swap(conn, &mut new_conn);
     Ok(())
+}
+
+pub(crate) async fn with_timeout<F, T>(future: F, timeout: std::time::Duration) -> F::Output
+where
+    F: std::future::Future<Output = crate::error::Result<T>>,
+{
+    tokio::time::timeout(timeout, future).await?
 }
