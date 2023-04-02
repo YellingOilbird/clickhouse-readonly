@@ -1,6 +1,6 @@
 [package]
 name = "clickhouse-readonly"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["guacharo"]
 description = "Clickhouse readonly TCP light-client with TLS & Basic Ethereum types support"
